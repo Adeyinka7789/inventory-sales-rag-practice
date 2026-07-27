@@ -10,8 +10,12 @@ policy data instead of HR, so this is genuinely yours to teach from.
 - ✅ `.env` / `.gitignore` wired correctly — secrets never get tracked by git
 - ✅ Data loading + chunking confirmed working (6 clean chunks from `data/policies.txt`)
 - ✅ FAISS vector store + retriever wiring confirmed working (structural test)
-- ⛔ Groq and Jina API calls could NOT be tested in this sandbox — their domains
-  aren't reachable from here. This is expected and not a bug in the code.
+- ✅ Full end-to-end run on Windows / Python 3.13: Jina embedded the chunks,
+  FAISS persisted them to `faiss_index/`, and Groq answered from retrieved
+  policy text (bulk-discount tiers, Net 30/45 terms, the 7-day electronics
+  window) — so the answers are genuinely grounded, not improvised.
+- ✅ Persistence confirmed both ways: first run builds and saves the index,
+  every run after prints "loading it (no re-embedding)".
 
 ## What you need to do on your own machine
 
@@ -19,35 +23,60 @@ policy data instead of HR, so this is genuinely yours to teach from.
 - **Groq**: console.groq.com → sign in → API Keys → Create API Key
 - **Jina**: jina.ai → sign in → get API key (generous free tier)
 
-### 2. Fill in `.env`
-Replace the placeholders in `.env` with your real keys:
+### 2. Create `.env`
+`.env` is gitignored and is **not** in this repo — create it yourself at
+`groq_rag_practice/.env` with your real keys:
 ```
 GROQ_API_KEY=gsk_your_real_key
 JINA_API_KEY=jina_your_real_key
 ```
+`config.check_api_keys()` runs before anything else in `rag_practice.py`, so a
+missing key fails immediately with a clear message rather than halfway through
+building the index.
 
-### 3. Run it
+### 3. Create the venv and install
 ```bash
 cd groq_rag_practice
-source venv/bin/activate        # Windows: venv\Scripts\activate
+python -m venv venv
+source venv/bin/activate            # Windows PowerShell: .\venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+```
+
+### 4. Run it
+```bash
 python rag_practice.py
 ```
 
-You should see: environment loaded → document loaded → 6 chunks →
-FAISS indexed → a raw similarity search result → the LLM ready → three
-sample questions asked and answered by the agent, using the `search_policy`
-tool to ground its answers in `data/policies.txt`.
+Run it from **inside** `groq_rag_practice/` — `config.py` uses relative paths
+(`data/policies.txt`, `faiss_index`), so running from the parent directory
+fails with a `FileNotFoundError` in the loader.
+
+On the first run you should see "No saved vector store found — building one
+from scratch" (that's the one time Jina gets paid), then a `>` prompt. Every
+run after that says "Found a saved vector store on disk — loading it".
 
 ## Try asking it yourself
-Add your own questions at the bottom of `rag_practice.py`, e.g.:
+`rag_practice.py` ends in an interactive loop — type a question at the `>`
+prompt, press Enter on a blank line to quit. Things worth trying:
 - "Can I return an opened electronics item after 10 days?"
 - "How is the reorder quantity calculated?"
 - "What happens if a supplier pays late?"
 
+Note that each question is a **fresh conversation** — `ask_assistant` sends a
+single user message, so a follow-up like "what about 200 units?" won't know
+what you were just talking about. Adding memory means carrying the message
+history across turns (LangGraph checkpointers); that's a deliberate next step,
+not an oversight.
+
 ## What to notice while you run this (teaching points)
-- The **system prompt explicitly forbids** the assistant from promising a
-  refund directly — this is the safety-guardrail pattern from Phase 2,
-  now doing real work in an agent's instructions, not just a lecture point.
+- The "never promise a refund directly" guardrail lives in **`data/policies.txt`,
+  not in the system prompt** — `config.SYSTEM_PROMPT` only says "use the tool".
+  So the rule reaches the model as *retrieved data*, and holds only when that
+  chunk is actually retrieved. In practice it works (ask about a late order and
+  the assistant routes to a manager instead of promising money back), but it's
+  worth showing trainees that a guardrail in the corpus is at the mercy of the
+  retriever, whereas one in the system prompt is present on every single call.
+  Good live demo: move the rule into `SYSTEM_PROMPT` and discuss the tradeoff.
 - `create_agent` is LangChain's newer, higher-level way to build an agent —
   compare this to the raw `tools_schema` + manual loop from the Build
   Guide's Phase 5. Teach the raw version first so trainees understand
