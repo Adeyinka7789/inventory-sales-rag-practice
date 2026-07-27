@@ -24,8 +24,8 @@ policy data instead of HR, so this is genuinely yours to teach from.
 - **Jina**: jina.ai → sign in → get API key (generous free tier)
 
 ### 2. Create `.env`
-`.env` is gitignored and is **not** in this repo — create it yourself at
-`groq_rag_practice/.env` with your real keys:
+`.env` is gitignored and is **not** in this repo — create it yourself in the
+repo root, next to `config.py`, with your real keys:
 ```
 GROQ_API_KEY=gsk_your_real_key
 JINA_API_KEY=jina_your_real_key
@@ -36,7 +36,7 @@ building the index.
 
 ### 3. Create the venv and install
 ```bash
-cd groq_rag_practice
+cd inventory-sales-rag-practice
 python -m venv venv
 source venv/bin/activate            # Windows PowerShell: .\venv\Scripts\Activate.ps1
 pip install -r requirements.txt
@@ -47,8 +47,8 @@ pip install -r requirements.txt
 python rag_practice.py
 ```
 
-Run it from **inside** `groq_rag_practice/` — `config.py` uses relative paths
-(`data/policies.txt`, `faiss_index`), so running from the parent directory
+Run it from the **repo root** — `config.py` uses relative paths
+(`data/policies.txt`, `faiss_index`), so running from anywhere else
 fails with a `FileNotFoundError` in the loader.
 
 On the first run you should see "No saved vector store found — building one
