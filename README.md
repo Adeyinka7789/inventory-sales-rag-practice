@@ -35,8 +35,8 @@ missing key fails immediately with a clear message rather than halfway through
 building the index.
 
 ### 3. Create the venv and install
+From the repo root (the folder holding `config.py`):
 ```bash
-cd inventory-sales-rag-practice
 python -m venv venv
 source venv/bin/activate            # Windows PowerShell: .\venv\Scripts\Activate.ps1
 pip install -r requirements.txt
